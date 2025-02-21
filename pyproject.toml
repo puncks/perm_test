@@ -5,7 +5,6 @@ build-backend = "maturin"
 [project]
 name = "perm_test_punck"
 description = "A rust implementation for fast permutation testing"
-version = "0.0.1"
 authors = [{ name = "Puck van Gijzen", email = "puckvangijzen@proton.me"}]
 license = "MIT"
 requires-python = ">=3.8"
