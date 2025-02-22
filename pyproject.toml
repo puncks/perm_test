@@ -17,6 +17,7 @@ classifiers = [
 dynamic = ["version"]
 [tool.maturin]
 features = ["pyo3/extension-module"]
+compatibility = "linux"
 [project.urls]
 Homepage = "https://gitlab.com/punck/perm_test"
 Issues = "https://gitlab.com/punck/perm_test/issues"
