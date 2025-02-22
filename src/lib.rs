@@ -1,13 +1,24 @@
 use pyo3::prelude::*;
 use rand::seq::IndexedRandom;
 
-// return tstats for the amount of permutations given
+// return p value tstats for the amount of permutations given
 #[pyfunction]
-fn test(perm: usize, labels: Vec<bool>, data: Vec<f64> ) -> PyResult<Vec<f64>> {
-    // make sure the labels are as long as the data
-    if labels.len() != data.len(){
-        panic!("Data and label list should be the same length");
-    };
+fn test(perm: usize, group_0: Vec<f64>, group_1: Vec<f64> ) -> PyResult<(f64, Vec<f64>)> {
+    // calculate the initial tstat
+    let init_tstat = calc_tstat(group_0.clone(), group_1.clone());
+
+    // assign labels to the different groups
+    let mut labels : Vec<bool> = Vec::new();
+    for _i in 0..group_0.len(){
+        labels.push(false);
+    }
+    for _i in 0..group_1.len(){
+        labels.push(true);
+    }
+    
+    // make a data variable from the different groups
+    let data = [group_0, group_1].concat();
+
     // create a varable to put the randomised t-stats in
     let mut rand_tstat : Vec<f64> = Vec::new();
 
@@ -31,11 +42,15 @@ fn test(perm: usize, labels: Vec<bool>, data: Vec<f64> ) -> PyResult<Vec<f64>> {
         }
 
         // calculate the tstat for these groups and add it to the randomised tstats
-        rand_tstat.push(calc_tstat(group_0, group_1));
+        rand_tstat.push(calc_tstat(group_0,group_1));
 
     }
+    // use calculated and initial tstats to calculate a p value
 
-    Ok(rand_tstat)
+    let p_value = calc_p_value(init_tstat, rand_tstat.clone());
+
+
+    Ok((p_value, rand_tstat))
 }
 
 // calculate the tstat of the difference of two groups
@@ -61,6 +76,20 @@ fn calc_tstat (group_0: Vec<f64>, group_1: Vec<f64>) -> f64 {
     (mean_0 - mean_1) / s
         
 }
+
+fn calc_p_value(initial:f64, permutations: Vec<f64>) -> f64 {
+    // use the amount and tstats of the permutations and initial tstat to calculate the p value
+    let perms = permutations.len() as f64;
+    let mut p_value : f64 = 0.0;
+    for i in permutations{
+        if i <= initial {
+            p_value = p_value + 1.0 / perms ;
+        }
+    }
+    p_value
+}
+
+
 
 fn calc_mean(group:&Vec<f64>, n: f64) -> f64 {
     // calculate the mean as the sum of the data divided by its length
