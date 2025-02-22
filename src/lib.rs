@@ -4,6 +4,10 @@ use rand::seq::IndexedRandom;
 // return tstats for the amount of permutations given
 #[pyfunction]
 fn test(perm: usize, labels: Vec<bool>, data: Vec<f64> ) -> PyResult<Vec<f64>> {
+    // make sure the labels are as long as the data
+    if labels.len() != data.len(){
+        panic!("Data and label list should be the same length");
+    };
     // create a varable to put the randomised t-stats in
     let mut rand_tstat : Vec<f64> = Vec::new();
 
