@@ -5,6 +5,6 @@ Input example: ` perm_test.test(amount, group_1, group_2) `.
 
 Output of type: `p_value, [tstats of permutations]`.
 
-Can also return a single tstat if called with `perm_test.test(group_1, group_2)`.
+Can also return a single tstat if called with `perm_test.calc_tstat(group_1, group_2)`.
 
 Only one dimensional datasets have been implemented.
