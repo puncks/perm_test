@@ -1,9 +1,32 @@
 use pyo3::prelude::*;
 use rand::seq::IndexedRandom;
 
+//use a 2d vector to output a multites
+#[pyfunction]
+fn multitest(perm: usize, groups_0: Vec<Vec<f64>>, groups_1: Vec<Vec<f64>>) -> PyResult<(Vec<f64>, Vec<Vec<f64>>)> {
+    // send an error if the groups don't have the same amount of vectors
+    if groups_0.len() != groups_1.len() {
+        panic!("Both data groups must contain the same amount of measurement lists")
+    }
+
+    //make our output vectors
+    let mut t_stats : Vec<Vec<f64>> = Vec::new();
+    let mut p_values : Vec<f64> = Vec::new();
+
+    //run a for loop for the amount of data
+    for i in 0..groups_0.len() {
+        let run_data = test(perm, groups_0[i].clone(), groups_1[i].clone());
+        t_stats.push(run_data.1);
+        p_values.push(run_data.0);
+    }
+
+    Ok((p_values, t_stats))
+}
+
+
 // return p value tstats for the amount of permutations given
 #[pyfunction]
-fn test(perm: usize, group_0: Vec<f64>, group_1: Vec<f64> ) -> PyResult<(f64, Vec<f64>)> {
+fn test(perm: usize, group_0: Vec<f64>, group_1: Vec<f64> ) -> (f64, Vec<f64>) {
     // calculate the initial tstat
     let init_tstat = calc_tstat(group_0.clone(), group_1.clone());
 
@@ -50,7 +73,7 @@ fn test(perm: usize, group_0: Vec<f64>, group_1: Vec<f64> ) -> PyResult<(f64, Ve
     let p_value = calc_p_value(init_tstat, rand_tstat.clone());
 
 
-    Ok((p_value, rand_tstat))
+    (p_value, rand_tstat)
 }
 
 // calculate the tstat of the difference of two groups
@@ -115,5 +138,6 @@ fn calc_sigma_squared(group: Vec<f64>,mean:f64, n :f64) -> f64{
 fn perm_test(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(test, m)?)?;
     m.add_function(wrap_pyfunction!(calc_tstat, m)?)?;
+    m.add_function(wrap_pyfunction!(multitest, m)?)?;
     Ok(())
 }
