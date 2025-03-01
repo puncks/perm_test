@@ -1,5 +1,7 @@
 use pyo3::prelude::*;
 use rand::seq::IndexedRandom;
+use std::thread;
+use std::sync::mpsc;
 
 //use a 2d vector to output a multites
 #[pyfunction]
@@ -45,8 +47,167 @@ fn test(perm: usize, group_0: Vec<f64>, group_1: Vec<f64> ) -> (f64, Vec<f64>) {
     // create a varable to put the randomised t-stats in
     let mut rand_tstat : Vec<f64> = Vec::new();
 
+    //make communication work
+    let (tx, rx) = mpsc::channel();
     // make a loop for the length of permutations
-    for _i in 0..perm{
+    let tx1 = tx.clone();
+    let labels1 = labels.clone();
+    let data1 = data.clone();
+    thread::spawn(move || {
+        for _i in 0..(perm / 16) {
+            tx1.send(make_permutation(labels1.clone(),data1.clone())).unwrap();
+        }
+    });
+
+    let tx2 = tx.clone();
+    let labels2 = labels.clone();
+    let data2 = data.clone();
+    thread::spawn(move || {
+        for _i in 0..(perm / 16) {
+            tx2.send(make_permutation(labels2.clone(),data2.clone())).unwrap();
+        }
+    });
+
+    let tx3 = tx.clone();
+    let labels3 = labels.clone();
+    let data3 = data.clone();
+    thread::spawn(move || {
+        for _i in 0..(perm / 16) {
+            tx3.send(make_permutation(labels3.clone(),data3.clone())).unwrap();
+        }
+    });
+
+    let tx4 = tx.clone();
+    let labels4 = labels.clone();
+    let data4 = data.clone();
+    thread::spawn(move || {
+        for _i in 0..(perm / 16) {
+            tx4.send(make_permutation(labels4.clone(),data4.clone())).unwrap();
+        }
+    });
+
+    let tx5 = tx.clone();
+    let labels5 = labels.clone();
+    let data5 = data.clone();
+    thread::spawn(move || {
+        for _i in 0..(perm / 16) {
+            tx5.send(make_permutation(labels5.clone(),data5.clone())).unwrap();
+        }
+    });
+
+
+    let tx6 = tx.clone();
+    let labels6 = labels.clone();
+    let data6 = data.clone();
+    thread::spawn(move || {
+        for _i in 0..(perm / 16) {
+            tx6.send(make_permutation(labels6.clone(),data6.clone())).unwrap();
+        }
+    });
+
+    let tx7 = tx.clone();
+    let labels7 = labels.clone();
+    let data7 = data.clone();
+    thread::spawn(move || {
+        for _i in 0..(perm / 16) {
+            tx7.send(make_permutation(labels7.clone(),data7.clone())).unwrap();
+        }
+    });
+
+    let tx8 = tx.clone();
+    let labels8 = labels.clone();
+    let data8 = data.clone();
+    thread::spawn(move || {
+        for _i in 0..(perm / 16) {
+            tx8.send(make_permutation(labels8.clone(),data8.clone())).unwrap();
+        }
+    });
+
+    let tx9 = tx.clone();
+    let labels9 = labels.clone();
+    let data9 = data.clone();
+    thread::spawn(move || {
+        for _i in 0..(perm / 16) {
+            tx9.send(make_permutation(labels9.clone(),data9.clone())).unwrap();
+        }
+    });
+
+
+    let tx10 = tx.clone();
+    let labels10 = labels.clone();
+    let data10 = data.clone();
+    thread::spawn(move || {
+        for _i in 0..(perm / 16) {
+            tx10.send(make_permutation(labels10.clone(),data10.clone())).unwrap();
+        }
+    });
+
+
+    let tx11 = tx.clone();
+    let labels11 = labels.clone();
+    let data11 = data.clone();
+    thread::spawn(move || {
+        for _i in 0..(perm / 16) {
+            tx11.send(make_permutation(labels11.clone(),data11.clone())).unwrap();
+        }
+    });
+
+    let tx12 = tx.clone();
+    let labels12 = labels.clone();
+    let data12 = data.clone();
+    thread::spawn(move || {
+        for _i in 0..(perm / 16) {
+            tx12.send(make_permutation(labels12.clone(),data12.clone())).unwrap();
+        }
+    });
+
+    let tx13 = tx.clone();
+    let labels13 = labels.clone();
+    let data13 = data.clone();
+    thread::spawn(move || {
+        for _i in 0..(perm / 16) {
+            tx13.send(make_permutation(labels13.clone(),data13.clone())).unwrap();
+        }
+    });
+
+    let tx14 = tx.clone();
+    let labels14 = labels.clone();
+    let data14 = data.clone();
+    thread::spawn(move || {
+        for _i in 0..(perm / 16) {
+            tx14.send(make_permutation(labels14.clone(),data14.clone())).unwrap();
+        }
+    });
+
+    let tx15 = tx.clone();
+    let labels15 = labels.clone();
+    let data15 = data.clone();
+    thread::spawn(move || {
+        for _i in 0..(perm / 16) {
+            tx15.send(make_permutation(labels15.clone(),data15.clone())).unwrap();
+        }
+    });
+
+    thread::spawn(move || {
+        for _i in 0..(perm / 16) {
+            tx.send(make_permutation(labels.clone(),data.clone())).unwrap();
+        }
+    });
+
+    for receive in rx{ 
+    rand_tstat.push(receive);
+            }
+
+    // use calculated and initial tstats to calculate a p value
+
+    let p_value = calc_p_value(init_tstat, rand_tstat.clone());
+
+
+    (p_value, rand_tstat)
+}
+
+//make a function to contain the permutations and their calculations
+fn make_permutation(labels: Vec<bool>, data: Vec<f64>) -> f64{
 
         // create randomised labels
         let mut rng = &mut rand::rng();
@@ -65,15 +226,7 @@ fn test(perm: usize, group_0: Vec<f64>, group_1: Vec<f64> ) -> (f64, Vec<f64>) {
         }
 
         // calculate the tstat for these groups and add it to the randomised tstats
-        rand_tstat.push(calc_tstat(group_0,group_1));
-
-    }
-    // use calculated and initial tstats to calculate a p value
-
-    let p_value = calc_p_value(init_tstat, rand_tstat.clone());
-
-
-    (p_value, rand_tstat)
+        calc_tstat(group_0,group_1)
 }
 
 // calculate the tstat of the difference of two groups
