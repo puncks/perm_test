@@ -114,13 +114,22 @@ fn calc_tstat (group_0: Vec<f64>, group_1: Vec<f64>) -> f64 {
 fn calc_p_value(initial:f64, permutations: Vec<f64>) -> f64 {
     // use the amount and tstats of the permutations and initial tstat to calculate the p value
     let perms = permutations.len() as f64;
-    let mut p_value : f64 = 0.0;
+    let mut p_value_low : f64 = 0.0;
+    let mut p_value_high: f64 = 0.0;
     for i in permutations{
         if i <= initial {
-            p_value = p_value + 1.0 / perms ;
+            p_value_high = p_value_high + 1.0 / perms ;
+        }
+        if i >= initial{
+            p_value_low = p_value_low + 1.0/perms;
         }
     }
-    p_value
+    if p_value_low < p_value_high {
+        p_value_low
+    }
+    else{
+        p_value_high
+    }
 }
 
 
@@ -137,7 +146,7 @@ fn calc_sigma_squared(group: Vec<f64>,mean:f64, n :f64) -> f64{
     // calculate the sigma^2 as the sum of (x-mean)^2 / (N-1)
     let mut sigma_squared : f64 = 0.0;
     for i in group {
-        sigma_squared = sigma_squared + (i - mean) * (i-mean) / (n-1.0);
+        sigma_squared = sigma_squared + (i - mean) * (i - mean) / (n - 1.0);
     }
     sigma_squared
 }
