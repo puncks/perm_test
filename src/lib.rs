@@ -1,9 +1,34 @@
 use pyo3::prelude::*;
 use rand::seq::IndexedRandom;
+use rayon::prelude::*;
+use std::sync::mpsc;
+
+//use a 2d vector to output a multites
+#[pyfunction]
+fn multitest(perm: usize, groups_0: Vec<Vec<f64>>, groups_1: Vec<Vec<f64>>) -> PyResult<(Vec<f64>, Vec<Vec<f64>>)> {
+    // send an error if the groups don't have the same amount of vectors
+    if groups_0.len() != groups_1.len() {
+        panic!("Both data groups must contain the same amount of measurement lists")
+    }
+
+    //make our output vectors
+    let mut t_stats : Vec<Vec<f64>> = Vec::new();
+    let mut p_values : Vec<f64> = Vec::new();
+
+    //run a for loop for the amount of data
+    for i in 0..groups_0.len() {
+        let run_data = test(perm, groups_0[i].clone(), groups_1[i].clone());
+        t_stats.push(run_data.1);
+        p_values.push(run_data.0);
+    }
+
+    Ok((p_values, t_stats))
+}
+
 
 // return p value tstats for the amount of permutations given
 #[pyfunction]
-fn test(perm: usize, group_0: Vec<f64>, group_1: Vec<f64> ) -> PyResult<(f64, Vec<f64>)> {
+fn test(perm: usize, group_0: Vec<f64>, group_1: Vec<f64> ) -> (f64, Vec<f64>) {
     // calculate the initial tstat
     let init_tstat = calc_tstat(group_0.clone(), group_1.clone());
 
@@ -22,8 +47,25 @@ fn test(perm: usize, group_0: Vec<f64>, group_1: Vec<f64> ) -> PyResult<(f64, Ve
     // create a varable to put the randomised t-stats in
     let mut rand_tstat : Vec<f64> = Vec::new();
 
+    //make communication work
+    let (tx, rx) = mpsc::channel();
     // make a loop for the length of permutations
-    for _i in 0..perm{
+    (0..perm).into_par_iter().for_each_with(tx, |tx, _x| tx.send(make_permutation(labels.clone(), data.clone())).unwrap()); 
+
+    for receive in rx{ 
+    rand_tstat.push(receive);
+            }
+
+    // use calculated and initial tstats to calculate a p value
+
+    let p_value = calc_p_value(init_tstat, rand_tstat.clone());
+
+
+    (p_value, rand_tstat)
+}
+
+//make a function to contain the permutations and their calculations
+fn make_permutation(labels: Vec<bool>, data: Vec<f64>) -> f64{
 
         // create randomised labels
         let mut rng = &mut rand::rng();
@@ -42,15 +84,7 @@ fn test(perm: usize, group_0: Vec<f64>, group_1: Vec<f64> ) -> PyResult<(f64, Ve
         }
 
         // calculate the tstat for these groups and add it to the randomised tstats
-        rand_tstat.push(calc_tstat(group_0,group_1));
-
-    }
-    // use calculated and initial tstats to calculate a p value
-
-    let p_value = calc_p_value(init_tstat, rand_tstat.clone());
-
-
-    Ok((p_value, rand_tstat))
+        calc_tstat(group_0,group_1)
 }
 
 // calculate the tstat of the difference of two groups
@@ -115,5 +149,6 @@ fn calc_sigma_squared(group: Vec<f64>,mean:f64, n :f64) -> f64{
 fn perm_test(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(test, m)?)?;
     m.add_function(wrap_pyfunction!(calc_tstat, m)?)?;
+    m.add_function(wrap_pyfunction!(multitest, m)?)?;
     Ok(())
 }
