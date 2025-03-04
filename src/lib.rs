@@ -5,7 +5,8 @@ use std::sync::mpsc;
 
 //use a 2d vector to output a multites
 #[pyfunction]
-fn multitest(perm: usize, groups_0: Vec<Vec<f64>>, groups_1: Vec<Vec<f64>>) -> PyResult<(Vec<f64>, Vec<Vec<f64>>)> {
+#[pyo3(signature = (perm, groups_0, groups_1, multithread=false))]
+fn multitest(perm: usize, groups_0: Vec<Vec<f64>>, groups_1: Vec<Vec<f64>>, multithread:Option<bool>) -> PyResult<(Vec<f64>, Vec<Vec<f64>>)> {
     // send an error if the groups don't have the same amount of vectors
     if groups_0.len() != groups_1.len() {
         panic!("Both data groups must contain the same amount of measurement lists")
@@ -17,7 +18,7 @@ fn multitest(perm: usize, groups_0: Vec<Vec<f64>>, groups_1: Vec<Vec<f64>>) -> P
 
     //run a for loop for the amount of data
     for i in 0..groups_0.len() {
-        let run_data = test(perm, groups_0[i].clone(), groups_1[i].clone());
+        let run_data = test(perm, groups_0[i].clone(), groups_1[i].clone(), multithread).unwrap();
         t_stats.push(run_data.1);
         p_values.push(run_data.0);
     }
@@ -28,7 +29,9 @@ fn multitest(perm: usize, groups_0: Vec<Vec<f64>>, groups_1: Vec<Vec<f64>>) -> P
 
 // return p value tstats for the amount of permutations given
 #[pyfunction]
-fn test(perm: usize, group_0: Vec<f64>, group_1: Vec<f64> ) -> (f64, Vec<f64>) {
+#[pyo3(signature = (perm, group_0, group_1, multithread=false))]
+fn test(perm: usize, group_0: Vec<f64>, group_1: Vec<f64>, multithread :Option<bool> ) -> PyResult<(f64, Vec<f64>)> {
+
     // calculate the initial tstat
     let init_tstat = calc_tstat(group_0.clone(), group_1.clone());
 
@@ -50,18 +53,28 @@ fn test(perm: usize, group_0: Vec<f64>, group_1: Vec<f64> ) -> (f64, Vec<f64>) {
     //make communication work
     let (tx, rx) = mpsc::channel();
     // make a loop for the length of permutations
-    (0..perm).into_par_iter().for_each_with(tx, |tx, _x| tx.send(make_permutation(labels.clone(), data.clone())).unwrap()); 
+    // 
+    // multithreaded if called for
+    if multithread.unwrap() {
+        (0..perm).into_par_iter().for_each_with(tx, |tx, _i| tx.send(make_permutation(labels.clone(), data.clone())).unwrap()); 
+        for receive in rx{ 
+        rand_tstat.push(receive);
+        }
+    }
+    // singlethreaded otherwise
+    else{
+        for _i in 0..perm {
+            rand_tstat.push(make_permutation(labels.clone(), data.clone()))
+        }
+    }
 
-    for receive in rx{ 
-    rand_tstat.push(receive);
-            }
 
     // use calculated and initial tstats to calculate a p value
 
     let p_value = calc_p_value(init_tstat, rand_tstat.clone());
 
 
-    (p_value, rand_tstat)
+    Ok((p_value, rand_tstat))
 }
 
 //make a function to contain the permutations and their calculations
